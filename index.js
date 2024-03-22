@@ -40,6 +40,43 @@ async function run() {
       res.send(result);
     })
 
+    app.post('/api/v1/sell-posts', async (req, res) => {
+      const post = req.body;
+      const result = await sellPostCollection.insertOne(post);
+      res.send(result)
+    })
+
+
+
+    app.get('/api/v1/sell_posts/:id', async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const post = await sellPostCollection.findOne(query);
+      res.send(post);
+    })
+
+    
+
+
+    app.post('/api/v1/bids', async (req, res) => {
+      const bid = req.body;
+      const result = await bidCollection.insertOne(bid);
+      res.send(result)
+    })
+
+    app.get('/api/v1/bids', async (req, res) => {
+      let query = {};
+      const email = req.params.email;
+      if (email) {
+        query.biddersEmail = email;
+      }
+      const cursor = bidCollection.find(query);
+      const result = await cursor.toArray();
+      res.send(result);
+    })
+
+  
+
 
 
     // Send a ping to confirm a successful connection
