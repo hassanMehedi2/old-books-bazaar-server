@@ -27,6 +27,18 @@ async function run() {
     const sellPostCollection = client.db('bookBazaar').collection('sellPosts');
     const bidCollection = client.db('bookBazaar').collection('bids');
 
+    // /api/v1/sell-posts       situation 1
+    // /api/v1/sell-posts?email=queryEmail      situation 2
+    app.get("/api/v1/sell-posts", async (req, res) => {
+      let query = {};
+      const email = req.query.email;
+      if (email) {
+        query.postedBy = email;
+      }
+      const cursor = sellPostCollection.find(query);
+      const result = await cursor.toArray();
+      res.send(result);
+    })
 
 
 
