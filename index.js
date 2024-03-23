@@ -29,33 +29,33 @@ async function run() {
 
     // /api/v1/sell-posts       situation 1
     // /api/v1/sell-posts?email=queryEmail      situation 2
-    app.get("/api/v1/sell-posts", async (req, res) => {
-      let query = {};
-      const email = req.query.email;
-      if (email) {
-        query.postedBy = email;
-      }
-      const cursor = sellPostCollection.find(query);
-      const result = await cursor.toArray();
-      res.send(result);
-    })
-
+  
     app.post('/api/v1/sell-posts', async (req, res) => {
       const post = req.body;
       const result = await sellPostCollection.insertOne(post);
       res.send(result)
     })
 
-
-
-    app.get('/api/v1/sell_posts/:id', async (req, res) => {
-      const id = req.params.id;
-      const query = { _id: new ObjectId(id) };
-      const post = await sellPostCollection.findOne(query);
-      res.send(post);
+    app.get('/api/v1/sell_posts', async (req, res) => {
+      let query = {};
+      const category = req.query.category;
+      const id = req.query.id;
+      const email = req.query.email;
+      
+      if(category){
+        query.category = category;
+      }
+      if(id){
+        query = { _id: new ObjectId(id) };
+      }
+      if (email) {
+        query.postedBy = email;
+      }
+      
+      const posts =  sellPostCollection.find(query);
+      const result = await posts.toArray();
+      res.send(result);
     })
-
-    
 
 
     app.post('/api/v1/bids', async (req, res) => {
@@ -75,7 +75,14 @@ async function run() {
       res.send(result);
     })
 
-  
+    app.get('/api/v1/bids/:postId', async (req, res) => {
+      const sellPostId = req.params.postId;
+      const query = {sellPostId: sellPostId };
+      const cursor = bidCollection.find(query);
+      const result = await cursor.toArray();
+      res.send(result);
+    })
+
 
 
 
