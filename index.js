@@ -66,7 +66,7 @@ async function run() {
 
     app.get('/api/v1/bids', async (req, res) => {
       let query = {};
-      const email = req.params.email;
+      const email = req.query.email;
       if (email) {
         query.biddersEmail = email;
       }
@@ -82,6 +82,34 @@ async function run() {
       const result = await cursor.toArray();
       res.send(result);
     })
+
+
+// api for the top 3 id of top bidded sell post 
+
+app.get('/api/v1/topBiddedSellPosts',async(req,res)=>{
+  try{
+    const pipeline = [  //defined the pipeline in saparate way
+      {$group : {_id:"$sellPostId",totalBids:{$sum :1}}},
+      {$sort: {totalBids : -1}},
+      {$limit :3 }
+    ]
+    
+    const topBiddedSellPosts = await bidCollection.aggregate(pipeline).toArray();
+
+    if(topBiddedSellPosts.length === 0){
+      return res.json({sellPostId:null})
+    }
+    
+    // Extract sellPostIDs from the result 
+    const topSellPostsIds = topBiddedSellPosts.map(item=>item._id);
+    res.json({topBiddedSellPostsIds:topSellPostsIds});
+  }
+
+  catch(err){
+    console.log(err);
+    res.status(500).json({message:"internal server error"})
+  }
+})
 
 
 
