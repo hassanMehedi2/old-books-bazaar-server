@@ -5,7 +5,14 @@ const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const app = express()
 const port = 5000
 
-app.use(cors());
+// middleware 
+const corsOptions = {
+  origin: '*',
+  credentials: true,            //access-control-allow-credentials:true
+  optionSuccessStatus: 200,
+}
+
+app.use(cors(corsOptions))
 app.use(express.json());
 
 
@@ -29,32 +36,67 @@ async function run() {
 
     // /api/v1/sell-posts       situation 1
     // /api/v1/sell-posts?email=queryEmail      situation 2
-  
+
     app.post('/api/v1/sell-posts', async (req, res) => {
       const post = req.body;
       const result = await sellPostCollection.insertOne(post);
       res.send(result)
     })
 
+    //paigination format
+    // /api/v1/sell_post?page=1&size=10
+
     app.get('/api/v1/sell_posts', async (req, res) => {
       let query = {};
       const category = req.query.category;
       const id = req.query.id;
       const email = req.query.email;
-      
-      if(category){
+
+
+
+      //paigination
+      const page = Number(req.query.page);
+      const size = Number(req.query.size);
+      const skip = (page - 1) * size;
+
+
+      if (category) {
         query.category = category;
       }
-      if(id){
+      if (id) {
         query = { _id: new ObjectId(id) };
       }
       if (email) {
         query.postedBy = email;
       }
-      
-      const posts =  sellPostCollection.find(query);
+
+      // price less then {have to add category also if has}
+      const less_than = Number(req.query.less_than);
+
+      if (less_than) {
+        query = {
+          minimumPrice: { $lte: less_than }
+        }
+      }
+      // if filtered by category and also less the price 
+      if (category && less_than) {
+        query = {
+          category: category,
+          minimumPrice: { $lte: less_than }
+        }
+      }
+
+      const posts = sellPostCollection.find(query).skip(skip).limit(size);
       const result = await posts.toArray();
-      res.send(result);
+
+      // /total count 
+      const total = await sellPostCollection.countDocuments();
+
+      res.send({
+        result,
+        total
+
+      });
     })
 
 
@@ -77,39 +119,39 @@ async function run() {
 
     app.get('/api/v1/bids/:postId', async (req, res) => {
       const sellPostId = req.params.postId;
-      const query = {sellPostId: sellPostId };
+      const query = { sellPostId: sellPostId };
       const cursor = bidCollection.find(query);
       const result = await cursor.toArray();
       res.send(result);
     })
 
 
-// api for the top 3 id of top bidded sell post 
+    // api for the top 3 id of top bidded sell post 
 
-app.get('/api/v1/topBiddedSellPosts',async(req,res)=>{
-  try{
-    const pipeline = [  //defined the pipeline in saparate way
-      {$group : {_id:"$sellPostId",totalBids:{$sum :1}}},
-      {$sort: {totalBids : -1}},
-      {$limit :3 }
-    ]
-    
-    const topBiddedSellPosts = await bidCollection.aggregate(pipeline).toArray();
+    app.get('/api/v1/topBiddedSellPosts', async (req, res) => {
+      try {
+        const pipeline = [  //defined the pipeline in saparate way
+          { $group: { _id: "$sellPostId", totalBids: { $sum: 1 } } },
+          { $sort: { totalBids: -1 } },
+          { $limit: 3 }
+        ]
 
-    if(topBiddedSellPosts.length === 0){
-      return res.json({sellPostId:null})
-    }
-    
-    // Extract sellPostIDs from the result 
-    const topSellPostsIds = topBiddedSellPosts.map(item=>item._id);
-    res.json({topBiddedSellPostsIds:topSellPostsIds});
-  }
+        const topBiddedSellPosts = await bidCollection.aggregate(pipeline).toArray();
 
-  catch(err){
-    console.log(err);
-    res.status(500).json({message:"internal server error"})
-  }
-})
+        if (topBiddedSellPosts.length === 0) {
+          return res.json({ sellPostId: null })
+        }
+
+        // Extract sellPostIDs from the result 
+        const topSellPostsIds = topBiddedSellPosts.map(item => item._id);
+        res.json({ topBiddedSellPostsIds: topSellPostsIds });
+      }
+
+      catch (err) {
+        console.log(err);
+        res.status(500).json({ message: "internal server error" })
+      }
+    })
 
 
 
