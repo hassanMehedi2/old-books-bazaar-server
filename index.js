@@ -99,6 +99,27 @@ async function run() {
       });
     })
 
+    app.patch('/api/v1/my_posts/update/:id', async (req, res) => {
+      const id = req.params.id;
+      const UpdatedPost = req.body;
+      const filter = { _id: new ObjectId(id) }
+      const updatedDoc = {
+        $set: {
+          bookName: UpdatedPost.bookName,
+          image: UpdatedPost.image,
+          category: UpdatedPost.category,
+          deadline: UpdatedPost.deadline,
+          minimumPrice: UpdatedPost.minimumPrice,
+          maximumPrice: UpdatedPost.maximumPrice,
+          description: UpdatedPost.description,
+        }
+      }
+      console.log(updatedDoc);
+      const result = await sellPostCollection.updateOne(filter,updatedDoc);
+      res.send(result);    const post = req.body;
+   
+    })
+
 
     app.post('/api/v1/bids', async (req, res) => {
       const bid = req.body;
